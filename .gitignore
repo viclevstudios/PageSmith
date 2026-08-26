@@ -1,0 +1,10 @@
+node_modules/
+.npm-cache/
+dist/
+release/
+artifacts/
+*.log
+.DS_Store
+.codex
+.impeccable
+.agents

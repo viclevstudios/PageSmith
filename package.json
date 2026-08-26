@@ -1,0 +1,43 @@
+{
+  "name": "pagesmith-pdf",
+  "version": "0.1.0",
+  "description": "Lokale PDF-Werkzeuge fuer Windows 11",
+  "author": "PageSmith PDF",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "check": "node --check src/main.js && node --check src/preload.js && node --check src/renderer.js",
+    "test": "node test/core.test.js",
+    "dist": "electron-builder --win nsis"
+  },
+  "engines": {
+    "node": ">=22.13.0",
+    "npm": ">=10"
+  },
+  "dependencies": {
+    "docx": "^9.5.1",
+    "marked": "^15.0.7",
+    "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "6.2.108"
+  },
+  "devDependencies": {
+    "electron": "^37.2.4",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "de.lokalpdf.werkstatt",
+    "productName": "PageSmith PDF",
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis",
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  }
+}
