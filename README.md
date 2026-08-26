@@ -13,7 +13,6 @@ PageSmith PDF is a small side project of mine which I wanted to share publicly b
 - German and English user interface
 
 ## Todos
-- improve the UI
 - improve the compression feature
 - improve PDF exports
 
