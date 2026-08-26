@@ -23,9 +23,9 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1240,
     height: 820,
-    minWidth: 980,
-    minHeight: 650,
-    backgroundColor: '#10131a',
+    minWidth: 760,
+    minHeight: 620,
+    backgroundColor: '#0e1116',
     title: 'PageSmith PDF',
     autoHideMenuBar: true,
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false }

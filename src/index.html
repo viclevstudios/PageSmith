@@ -9,35 +9,40 @@
   <body>
     <div class="app-shell">
       <aside class="sidebar">
-        <div class="brand"><span class="brand-mark">P</span><span>PageSmith PDF</span></div>
-        <p class="privacy-label" data-i18n="privacy">Lokal &amp; privat</p>
-        <nav id="tool-nav" aria-label="PDF-Werkzeuge"></nav>
-        <div class="language-control"><span data-i18n="language">Sprache</span><div id="language-select"></div></div>
-        <div class="conflict-control"><span data-i18n="conflictHandling">Bei gleichem Dateinamen</span><div id="conflict-select"></div></div>
+        <div class="sidebar-top">
+          <div class="brand"><img class="brand-mark" src="pagesmith-mark.svg" alt="" /><span class="brand-name">PageSmith PDF</span></div>
+        </div>
+        <div class="nav-section">
+          <p class="section-label" data-i18n="tools">Werkzeuge</p>
+          <nav id="tool-nav" aria-label="PDF-Werkzeuge"></nav>
+        </div>
+        <div class="sidebar-settings">
+          <div class="language-control"><span data-i18n="language">Sprache</span><div id="language-select"></div></div>
+          <div class="conflict-control"><span data-i18n="conflictHandling">Bei gleichem Dateinamen</span><div id="conflict-select"></div></div>
+        </div>
       </aside>
-      <main>
-        <header class="topbar"><div><h1 id="tool-title"></h1><p id="tool-description" class="muted"></p></div><button id="reset-page" class="icon-button" title="Aktuelle Seite zurücksetzen" aria-label="Aktuelle Seite zurücksetzen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0 1.35 4.47"/><path d="M20 4v7h-7"/></svg></button></header>
+      <main class="main-content">
+        <header class="topbar">
+          <div class="topbar-copy"><h1 id="tool-title"></h1><p id="tool-description" class="muted"></p></div>
+          <div class="topbar-actions">
+            <button id="reset-page" class="icon-button" type="button" title="Aktuelle Seite zurücksetzen" aria-label="Aktuelle Seite zurücksetzen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0 1.35 4.47"/><path d="M20 4v7h-7"/></svg><span class="reset-label" data-i18n="resetShort">Reset</span></button>
+            <span id="app-version" class="app-version">v0.1.0</span>
+          </div>
+        </header>
         <section class="workspace">
           <ol id="workflow-status" class="workflow-status" aria-label="Auftragsfortschritt"><li data-step="files" data-i18n="files">Dateien</li><li data-step="options" data-i18n="options">Optionen</li><li data-step="destination" data-i18n="destination">Zielordner</li></ol>
-          <section id="drop-zone" class="drop-zone" aria-labelledby="drop-heading"><div class="drop-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 19V5"/><path d="m6 11 6-6 6 6"/></svg></div><h2 id="drop-heading" data-i18n="dropTitle">Dateien hier ablegen</h2><p id="drop-copy">oder über den Explorer auswählen</p><button class="secondary" id="choose-files">Dateien auswählen</button></section>
-          <div id="file-list" class="file-list empty" aria-live="polite"><p>Noch keine Dateien ausgewählt.</p></div>
-          <section class="options-card"><div class="card-heading"><div><h2 data-i18n="outputSettings">Ausgabe einstellen</h2><p id="option-summary" class="card-copy">Wird nach der Dateiauswahl passend vorbereitet.</p></div><span id="file-count" class="count">0 Dateien</span></div><div id="options" class="option-fields"></div></section>
-          <section class="destination-card"><div><h2 data-i18n="destination">Zielordner</h2><p id="destination-path" class="destination-path">Noch kein Ordner ausgewählt</p></div><button class="secondary" id="choose-folder" data-i18n="chooseFolder">Zielordner wählen</button></section>
-          <div class="run-row"><div><p id="run-hint" class="muted"></p><p id="readiness-hint" class="readiness-hint" aria-live="polite"></p></div><button id="run-button" class="primary" disabled>Ausführen</button></div>
+          <section id="drop-zone" class="drop-zone" aria-labelledby="drop-heading">
+            <div class="drop-zone-copy"><div class="drop-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 19V5"/><path d="m6 11 6-6 6 6"/></svg></div><div><h2 id="drop-heading" data-i18n="dropTitle">Dateien hier ablegen</h2><p id="drop-copy">oder über den Explorer auswählen</p></div></div>
+            <button class="secondary" id="choose-files" type="button">Dateien auswählen</button>
+          </section>
+          <div id="file-list" class="file-list empty" role="list" aria-live="polite"><p>Noch keine Dateien ausgewählt.</p></div>
+          <section class="options-card is-muted"><div class="card-heading"><div><h2 data-i18n="outputSettings">Ausgabe einstellen</h2><p id="option-summary" class="card-copy"></p></div><span id="file-count" class="count">0 Dateien</span></div><div id="options" class="option-fields"></div></section>
+          <section class="destination-card"><div class="destination-copy"><span class="section-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3.5 7.5h6l1.8 2H20a1 1 0 0 1 1 1v7.5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8.5a1 1 0 0 1 .5-1Z"/><path d="M3.5 10h17"/></svg></span><div><h2 data-i18n="destination">Zielordner</h2><p id="destination-path" class="destination-path">Noch kein Ordner ausgewählt</p></div></div><button class="secondary" id="choose-folder" type="button" data-i18n="chooseFolder">Zielordner wählen</button></section>
+          <div class="run-row"><div class="run-copy"><p id="run-hint" class="muted"></p></div><button id="run-button" class="primary" type="button" disabled>Ausführen</button></div>
           <section id="result-panel" class="result-panel" aria-live="polite" hidden></section>
         </section>
       </main>
     </div>
-    <style>
-      .language-control{display:grid;gap:7px;margin-top:19px;padding:14px 9px 0;color:#aab4c5;font-size:11px;border-top:1px solid #292f3b}
-      .conflict-control{display:grid;gap:7px;margin:14px 0 0;padding:0 9px;color:#aab4c5;font-size:11px}
-      .custom-select{position:relative;width:100%;font-size:13px;font-weight:600}.custom-select-trigger{display:flex;align-items:center;justify-content:space-between;width:100%;min-height:42px;padding:9px 10px 9px 12px;color:#eef1f7;background:#11161e;border:1px solid #435064;border-radius:9px;font:inherit;text-align:left;cursor:pointer;transition:background .16s,border-color .16s,box-shadow .16s}.custom-select-trigger:hover,.custom-select.is-open .custom-select-trigger{background:#1a202b;border-color:#8372c8}.custom-select-trigger:focus-visible{outline:3px solid #8f77ff88;outline-offset:2px}.custom-select-chevron{display:grid;place-items:center;width:24px;height:24px;margin:-2px -3px -2px 8px;color:#cfc7ff;border-radius:6px;transition:transform .18s ease,background .16s}.custom-select-trigger:hover .custom-select-chevron,.custom-select.is-open .custom-select-chevron{background:#302653}.custom-select.is-open .custom-select-chevron{transform:rotate(180deg)}.custom-select-chevron svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.custom-select-menu{position:absolute;z-index:20;top:calc(100% + 7px);left:0;right:0;display:grid;gap:3px;padding:5px;background:#202733;border:1px solid #56637a;border-radius:10px;box-shadow:0 16px 32px #06080eb8;opacity:0;visibility:hidden;transform:translateY(-5px);transition:opacity .14s ease,transform .14s ease,visibility .14s}.custom-select.is-open .custom-select-menu{opacity:1;visibility:visible;transform:translateY(0)}.custom-select-option{width:100%;padding:9px 10px;color:#c8d0de;background:transparent;border:0;border-radius:7px;font:inherit;text-align:left;cursor:pointer}.custom-select-option:hover,.custom-select-option:focus-visible{color:#fff;background:#34304e;outline:0}.custom-select-option.is-selected{color:#f1eeff;background:#302653}.custom-select-option.is-selected::after{content:"";float:right;width:7px;height:7px;margin-top:5px;background:#a993ff;border-radius:50%}
-      .icon-button{display:grid;place-items:center;width:39px;height:39px;padding:0;color:#dbe0eb;background:#252d3a;border:1px solid #3c4758;border-radius:10px;cursor:pointer;transition:background .16s,border-color .16s,transform .16s}.icon-button:hover{background:#303a4a;border-color:#64718a;transform:rotate(-18deg)}.icon-button svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-      .drop-icon{font-size:0}.drop-icon svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
-      .file-row{grid-template-columns:52px 39px minmax(0,1fr) auto}.file-preview{width:34px;height:42px;display:grid;place-items:center;background:#262d39;border:1px solid #414c5e;border-radius:4px;overflow:hidden;color:#c9d1de;font-size:8px}.file-preview img{width:100%;height:100%;object-fit:cover}
-      .file-row.merge-preview-row{grid-template-columns:118px 42px minmax(0,1fr) auto;min-height:134px}.merge-preview-row .file-preview{width:102px;height:120px;background:#fff}.merge-preview-row .file-preview img{object-fit:contain}.merge-preview-row .file-controls{align-self:center}
-      .page-order-list{gap:12px}.page-chip{display:grid;grid-template-columns:1fr auto;gap:6px;padding:7px;min-width:106px}.page-thumbnail{grid-column:1/-1;width:92px;height:122px;object-fit:cover;background:#fff;border-radius:4px}.page-controls{display:flex;justify-content:flex-end}
-    </style>
     <script src="renderer.js"></script>
   </body>
 </html>
