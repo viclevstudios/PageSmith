@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-labelledby="title">
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 32 32" role="img" aria-labelledby="title">
   <title>PageSmith</title>
   <rect x="1" y="1" width="30" height="30" rx="8" fill="#1c3455" stroke="#3e6191"/>
   <path d="M10 6.5h8.2l3.8 3.8V25H10z" fill="#d6e6ff"/>

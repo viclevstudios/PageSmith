@@ -27,6 +27,7 @@ function createWindow() {
     minHeight: 620,
     backgroundColor: '#0e1116',
     title: 'PageSmith PDF',
+    icon: path.join(__dirname, 'pagesmith-mark.ico'),
     autoHideMenuBar: true,
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false }
   });

@@ -73,7 +73,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--blue); outl
 .drop-zone:hover { background: #202731; border-color: #65748a; }
 .drop-zone.dragging { background: #1c2c45; border-color: var(--blue); transform: translateY(-1px); }
 .drop-zone-copy { display: flex; align-items: center; gap: 13px; min-width: 0; }
-.drop-icon { display: grid; place-items: center; flex: 0 0 auto; width: 36px; height: 36px; color: #cfe1ff; background: var(--blue-soft); border: 1px solid #3c6090; border-radius: 8px; }
+.drop-icon { display: grid; place-items: center; flex: 0 0 auto; width: 36px; height: 36px; color: #cfe1ff; background: transparent; border: 0; }
 .drop-icon svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8; }
 .drop-zone h2 { margin: 0 0 4px; color: #eff1f6; font-size: 14px; font-weight: 700; }
 .drop-zone p { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.45; }

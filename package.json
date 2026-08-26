@@ -27,6 +27,7 @@
   "build": {
     "appId": "de.lokalpdf.werkstatt",
     "productName": "PageSmith PDF",
+    "icon": "src/pagesmith-mark.ico",
     "files": [
       "src/**/*",
       "package.json",
