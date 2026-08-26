@@ -1,6 +1,6 @@
 # PageSmith PDF
 
-PageSmith PDF is a local Windows 11 desktop application for converting and editing PDF files. Files stay on the device: the application does not upload documents to a server.
+PageSmith PDF is a small side project of mine which I wanted to share publicly because why not. It's a local Windows 11 desktop application for converting and editing PDF files locally on your own computer.
 
 ## Features
 
@@ -58,6 +58,10 @@ Treat untrusted PDFs and office documents with the same care as any downloaded d
 - Ghostscript is optional. Its licence must be reviewed before redistributing it with any derivative installer.
 
 See [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) and [docs/PERFORMANCE.md](docs/PERFORMANCE.md) for the tested scope and operating guidance.
+
+## Package size
+
+The Windows build intentionally includes Electron and local PDF rendering support so that documents can stay offline. Release builds package only the German and English Chromium language resources and omit unused PDF.js viewer, type, source-map, and duplicate build files. The native PDF rendering module remains included for page previews and visual exports.
 
 ## Contributing
 
