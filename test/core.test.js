@@ -6,13 +6,14 @@ const os = require('node:os');
 const path = require('node:path');
 const Module = require('node:module');
 const { PDFDocument, StandardFonts } = require('pdf-lib');
+const overwriteDialogs = [];
 
 const originalLoad = Module._load;
 Module._load = function loadElectronForTests(request, parent, isMain) {
   if (request === 'electron') return {
     app: { getPath: () => os.tmpdir() },
     BrowserWindow: class BrowserWindow {},
-    dialog: {},
+    dialog: { showMessageBox: async (_window, options) => { overwriteDialogs.push(options); return { response: 1 }; } },
     ipcMain: { handle: () => {} },
     shell: {}
   };
@@ -55,9 +56,13 @@ async function run() {
 
     const converted = await tools.convertToPdf([textFile], output, { combine: 'separate' });
     await expectFile(converted[0]); assert.equal(await pageCount(converted[0]), 1, 'text conversion should create one PDF page');
-
+    const renamed = await tools.convertToPdf([textFile], output, { combine: 'separate' });
+    assert.match(path.basename(renamed[0]), /note \(1\)\.pdf$/, 'existing output should receive a numbered filename by default');
+    await expectFile(renamed[0]);
     const merged = await tools.mergePdfs([sourcePdf, secondPdf], output);
     await expectFile(merged[0]); assert.equal(await pageCount(merged[0]), 6, 'merge should preserve every page');
+    await assert.rejects(() => tools.runJob({ tool: 'merge', files: [sourcePdf, secondPdf], outputDir: output, conflictStrategy: 'overwrite', language: 'en' }), /The job was cancelled/);
+    assert.deepEqual(overwriteDialogs.at(-1).buttons, ['Overwrite', 'Cancel'], 'overwrite dialog should follow the selected language');
 
     const split = await tools.splitPdf([sourcePdf], output, '1,2');
     assert.equal(split.length, 3, 'split should create one file per segment');

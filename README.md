@@ -4,16 +4,23 @@ PageSmith PDF is a local Windows 11 desktop application for converting and editi
 
 ## Features
 
-- Convert TXT, images, HTML, Markdown, Microsoft Office and OpenOffice files to PDF
-- Export PDFs to TXT, editable DOCX, visual HTML, or Markdown with page images
-- Merge PDFs, split them at selected pages, and reorder pages
+- Convert TXT, images (png, jpg, jpeg), HTML, Markdown, Microsoft Office and OpenOffice files to PDF
+- Export PDFs to TXT, editable DOCX, visual HTML, or Markdown (still WIP, doesn't work that well yet)
+- Merge PDFs
+- Split them at selected pages
+- Reorder pages of existing PDFs
 - Compress PDFs locally
 - German and English user interface
+
+## Todos
+- improve the UI
+- improve the compression feature
+- improve PDF exports
 
 ## Requirements
 
 - Windows 11 (64-bit)
-- Node.js 22.13+ and npm 10+ for development
+- Node.js 22.13+ and npm 10+ for development (optional)
 - Microsoft Office for DOC, DOCX, XLS, XLSX, PPT and PPTX conversion (optional)
 - LibreOffice for ODT, ODS and ODP files, or as an Office-conversion fallback (optional)
 - Ghostscript for stronger image compression (optional; not bundled)

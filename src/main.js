@@ -17,6 +17,7 @@ const TEXT_EXTENSIONS = new Set(['.txt']);
 const HTML_EXTENSIONS = new Set(['.html', '.htm']);
 const MARKDOWN_EXTENSIONS = new Set(['.md', '.markdown']);
 let mainWindow;
+let activeJobSettings = { conflictStrategy: 'rename', language: 'de' };
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -64,7 +65,9 @@ if (process.env.PAGESMITH_TEST !== '1') {
     }
     return results;
   });
-  ipcMain.handle('run-job', async (_event, request) => runJob(request));
+  ipcMain.handle('run-job', async (_event, request) => {
+    try { return await runJob(request); } catch (error) { throw new Error(localiseError(error.message, request.language)); }
+  });
 }
 
 function safeStem(filePath) {
@@ -73,13 +76,40 @@ function safeStem(filePath) {
 function outputPath(directory, source, suffix, extension) {
   return path.join(directory, `${safeStem(source)}${suffix}.${extension}`);
 }
-async function confirmOverwrite(destination) {
-  try { await fs.access(destination); } catch { return; }
-  const result = await dialog.showMessageBox(mainWindow, { type: 'warning', buttons: ['Überschreiben', 'Abbrechen'], defaultId: 1, cancelId: 1, message: 'Datei existiert bereits', detail: `„${path.basename(destination)}“ existiert bereits. Soll sie überschrieben werden?` });
-  if (result.response !== 0) throw new Error('Der Auftrag wurde abgebrochen, damit keine bestehende Datei überschrieben wird.');
+function isEnglish() { return activeJobSettings.language === 'en'; }
+function localiseError(message, language = 'de') {
+  if (language !== 'en' || !message) return message;
+  const exact = {
+    'Der Auftrag wurde abgebrochen, damit keine bestehende Datei überschrieben wird.': 'The job was cancelled to keep the existing file unchanged.',
+    'Bitte einen Zielordner auswählen.': 'Please choose a destination folder.',
+    'Bitte mindestens eine Datei auswählen.': 'Please select at least one file.',
+    'Unbekanntes Werkzeug.': 'Unknown tool.'
+  };
+  if (exact[message]) return exact[message];
+  return message
+    .replace(/^Bitte mindestens (\d+) PDF-Dateien auswählen\.$/, 'Please select at least $1 PDF files.')
+    .replace(/^Nicht unterstütztes Eingabeformat: (.+)\.$/, 'Unsupported input format: $1.')
+    .replace(/^Die PDF hat nur (\d+) Seiten; alle Trennstellen müssen davor liegen\.$/, 'This PDF has only $1 pages; all split points must be before the final page.')
+    .replace(/^Bitte alle (\d+) Seiten genau einmal angeben, z\. B\. 2,1,3\.$/, 'Please specify all $1 pages exactly once, for example 2,1,3.');
 }
-async function writeOutput(destination, data, encoding) { await confirmOverwrite(destination); await fs.writeFile(destination, data, encoding); }
-async function copyOutput(source, destination) { await confirmOverwrite(destination); await fs.copyFile(source, destination); }
+async function uniqueOutputPath(destination) {
+  const extension = path.extname(destination); const stem = destination.slice(0, destination.length - extension.length);
+  let candidate = destination; let index = 1;
+  while (true) { try { await fs.access(candidate); candidate = `${stem} (${index++})${extension}`; } catch { return candidate; } }
+}
+async function prepareOutput(destination) {
+  if (activeJobSettings.conflictStrategy !== 'overwrite') return uniqueOutputPath(destination);
+  try { await fs.access(destination); } catch { return destination; }
+  const result = await dialog.showMessageBox(mainWindow, {
+    type: 'warning', buttons: isEnglish() ? ['Overwrite', 'Cancel'] : ['Überschreiben', 'Abbrechen'], defaultId: 1, cancelId: 1,
+    message: isEnglish() ? 'A file already exists' : 'Datei existiert bereits',
+    detail: isEnglish() ? `“${path.basename(destination)}” already exists. Do you want to overwrite it?` : `„${path.basename(destination)}“ existiert bereits. Soll sie überschrieben werden?`
+  });
+  if (result.response !== 0) throw new Error(isEnglish() ? 'The job was cancelled to keep the existing file unchanged.' : 'Der Auftrag wurde abgebrochen, damit keine bestehende Datei überschrieben wird.');
+  return destination;
+}
+async function writeOutput(destination, data, encoding) { const target = await prepareOutput(destination); await fs.writeFile(target, data, encoding); return target; }
+async function copyOutput(source, destination) { const target = await prepareOutput(destination); await fs.copyFile(source, target); return target; }
 function requireFiles(files, min = 1) {
   if (!Array.isArray(files) || files.length < min) throw new Error(min > 1 ? `Bitte mindestens ${min} PDF-Dateien auswählen.` : 'Bitte mindestens eine Datei auswählen.');
 }
@@ -107,7 +137,7 @@ async function createTextPdf(text, destination, title) {
       y -= lineHeight;
     }
   }
-  await writeOutput(destination, await pdf.save());
+  return writeOutput(destination, await pdf.save());
 }
 function wrapWords(words, font, size, maxWidth) {
   const result = []; let line = '';
@@ -123,7 +153,7 @@ async function printHtmlToPdf(html, destination) {
   try {
     const styled = `<!doctype html><html><head><meta charset="utf-8"><style>@page{margin:18mm}body{font-family:Segoe UI,Arial,sans-serif;color:#18202b;line-height:1.5}img{max-width:100%}pre{white-space:pre-wrap;background:#f3f5f7;padding:12px}table{border-collapse:collapse}td,th{border:1px solid #bbb;padding:6px}</style></head><body>${html}</body></html>`;
     await win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(styled)}`);
-    await writeOutput(destination, await win.webContents.printToPDF({ printBackground: true, preferCSSPageSize: true }));
+    return await writeOutput(destination, await win.webContents.printToPDF({ printBackground: true, preferCSSPageSize: true }));
   } finally { if (!win.isDestroyed()) win.destroy(); }
 }
 async function findExecutable(names) {
@@ -142,25 +172,26 @@ async function findExecutable(names) {
 function powerShellLiteral(value) { return `'${String(value).replace(/'/g, "''")}'`; }
 async function microsoftOfficeToPdf(source, destination) {
   const extension = path.extname(source).toLowerCase();
-  const sourceLiteral = powerShellLiteral(source), destinationLiteral = powerShellLiteral(destination);
+  const target = await prepareOutput(destination); const sourceLiteral = powerShellLiteral(source), destinationLiteral = powerShellLiteral(target);
   let script;
   if (MICROSOFT_WORD_EXTENSIONS.has(extension)) script = `$ErrorActionPreference='Stop'; $app=New-Object -ComObject Word.Application; $app.Visible=$false; $app.DisplayAlerts=0; try { $document=$app.Documents.Open(${sourceLiteral},$false,$true); $document.ExportAsFixedFormat(${destinationLiteral},17); $document.Close($false) } finally { $app.Quit() }`;
   else if (MICROSOFT_EXCEL_EXTENSIONS.has(extension)) script = `$ErrorActionPreference='Stop'; $app=New-Object -ComObject Excel.Application; $app.Visible=$false; $app.DisplayAlerts=$false; try { $book=$app.Workbooks.Open(${sourceLiteral},0,$true); $book.ExportAsFixedFormat(0,${destinationLiteral}); $book.Close($false) } finally { $app.Quit() }`;
   else if (MICROSOFT_POWERPOINT_EXTENSIONS.has(extension)) script = `$ErrorActionPreference='Stop'; $app=New-Object -ComObject PowerPoint.Application; try { $presentation=$app.Presentations.Open(${sourceLiteral},$true,$false,$false); $presentation.SaveAs(${destinationLiteral},32); $presentation.Close() } finally { $app.Quit() }`;
   else throw new Error(`Microsoft Office unterstützt „${extension}“ nicht.`);
-  await confirmOverwrite(destination);
   await execFileAsync('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', script], { windowsHide: true, timeout: 120000 });
-  await fs.access(destination);
-  return destination;
+  await fs.access(target);
+  return target;
 }
 async function libreOfficeToPdf(source, outputDir) {
   const soffice = await findExecutable(['soffice.exe', 'soffice']);
   if (!soffice) throw new Error('LibreOffice wurde nicht gefunden.');
-  const target = path.join(outputDir, `${safeStem(source)}.pdf`);
-  await confirmOverwrite(target);
-  await execFileAsync(soffice, ['--headless', '--convert-to', 'pdf', '--outdir', outputDir, source], { windowsHide: true, timeout: 120000 });
-  try { await fs.access(target); } catch { throw new Error(`LibreOffice konnte „${path.basename(source)}“ nicht in PDF umwandeln.`); }
-  return target;
+  const target = await prepareOutput(path.join(outputDir, `${safeStem(source)}.pdf`));
+  const temporaryDirectory = target === path.join(outputDir, `${safeStem(source)}.pdf`) ? outputDir : await fs.mkdtemp(path.join(app.getPath('temp'), 'pagesmith-office-'));
+  try {
+    await execFileAsync(soffice, ['--headless', '--convert-to', 'pdf', '--outdir', temporaryDirectory, source], { windowsHide: true, timeout: 120000 });
+    const generated = path.join(temporaryDirectory, `${safeStem(source)}.pdf`); try { await fs.access(generated); } catch { throw new Error(`LibreOffice konnte „${path.basename(source)}“ nicht in PDF umwandeln.`); }
+    if (generated !== target) await fs.rename(generated, target); return target;
+  } finally { if (temporaryDirectory !== outputDir) await fs.rm(temporaryDirectory, { recursive: true, force: true }); }
 }
 async function officeToPdf(source, outputDir) {
   const extension = path.extname(source).toLowerCase();
@@ -182,10 +213,10 @@ async function convertToPdf(files, outputDir, options = {}) {
   for (const source of files) {
     const ext = path.extname(source).toLowerCase();
     const destination = outputPath(workingDirectory, source, '', 'pdf');
-    if (ext === '.pdf') { await copyOutput(source, destination); outputs.push(destination); }
-    else if (TEXT_EXTENSIONS.has(ext)) { await createTextPdf(await fs.readFile(source, 'utf8'), destination, safeStem(source)); outputs.push(destination); }
-    else if (MARKDOWN_EXTENSIONS.has(ext)) { await printHtmlToPdf(marked.parse(await fs.readFile(source, 'utf8')), destination); outputs.push(destination); }
-    else if (HTML_EXTENSIONS.has(ext)) { await printHtmlToPdf(await fs.readFile(source, 'utf8'), destination); outputs.push(destination); }
+    if (ext === '.pdf') outputs.push(await copyOutput(source, destination));
+    else if (TEXT_EXTENSIONS.has(ext)) outputs.push(await createTextPdf(await fs.readFile(source, 'utf8'), destination, safeStem(source)));
+    else if (MARKDOWN_EXTENSIONS.has(ext)) outputs.push(await printHtmlToPdf(marked.parse(await fs.readFile(source, 'utf8')), destination));
+    else if (HTML_EXTENSIONS.has(ext)) outputs.push(await printHtmlToPdf(await fs.readFile(source, 'utf8'), destination));
     else if (IMAGE_EXTENSIONS.has(ext)) {
       const pdf = await PDFDocument.create(); const imageBytes = await fs.readFile(source);
       const image = ext === '.png' ? await pdf.embedPng(imageBytes) : await pdf.embedJpg(imageBytes);
@@ -193,7 +224,7 @@ async function convertToPdf(files, outputDir, options = {}) {
       const margin = 14; const scale = Math.min((pageWidth - margin * 2) / image.width, (pageHeight - margin * 2) / image.height);
       const w = image.width * scale, h = image.height * scale; const page = pdf.addPage([pageWidth, pageHeight]);
       page.drawImage(image, { x: (pageWidth - w) / 2, y: (pageHeight - h) / 2, width: w, height: h });
-      await writeOutput(destination, await pdf.save()); outputs.push(destination);
+      outputs.push(await writeOutput(destination, await pdf.save()));
     } else if (OFFICE_EXTENSIONS.has(ext)) outputs.push(await officeToPdf(source, workingDirectory));
     else throw new Error(`Nicht unterstütztes Eingabeformat: ${ext || 'ohne Dateiendung'}.`);
   }
@@ -201,9 +232,9 @@ async function convertToPdf(files, outputDir, options = {}) {
   const combined = await PDFDocument.create();
   for (const file of outputs) { const source = await PDFDocument.load(await fs.readFile(file)); const pages = await combined.copyPages(source, source.getPageIndices()); pages.forEach(page => combined.addPage(page)); }
   const target = path.join(outputDir, 'PDF-umgewandelt.pdf');
-  await writeOutput(target, await combined.save());
+  const savedTarget = await writeOutput(target, await combined.save());
   await fs.rm(workingDirectory, { recursive: true, force: true });
-  return [target];
+  return [savedTarget];
 }
 async function extractPdfText(source) {
   const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
@@ -239,14 +270,14 @@ async function renderPdfPages(source) {
 async function exportPdf(source, outputDir, format) {
   const pages = await extractPdfText(source); const text = pages.join('\n\n');
   const target = outputPath(outputDir, source, '', format);
-  if (format === 'txt') await writeOutput(target, text, 'utf8');
+  if (format === 'txt') return [await writeOutput(target, text, 'utf8')];
   if (format !== 'txt') {
     const rendered = await renderPdfPages(source);
-    if (format === 'html') await writeOutput(target, `<!doctype html><html lang="de"><meta charset="utf-8"><title>${escapeHtml(safeStem(source))}</title><style>body{margin:0;background:#20242b}img{display:block;width:min(100%,1100px);margin:18px auto;background:white;box-shadow:0 3px 18px #0008}</style><body>${rendered.map((page, index) => `<img alt="Seite ${index + 1}" src="data:image/png;base64,${page.data.toString('base64')}">`).join('')}</body></html>`, 'utf8');
+    if (format === 'html') return [await writeOutput(target, `<!doctype html><html lang="de"><meta charset="utf-8"><title>${escapeHtml(safeStem(source))}</title><style>body{margin:0;background:#20242b}img{display:block;width:min(100%,1100px);margin:18px auto;background:white;box-shadow:0 3px 18px #0008}</style><body>${rendered.map((page, index) => `<img alt="Seite ${index + 1}" src="data:image/png;base64,${page.data.toString('base64')}">`).join('')}</body></html>`, 'utf8')];
     if (format === 'md') {
       const assets = path.join(outputDir, `${safeStem(source)}-Seiten`); await fs.mkdir(assets, { recursive: true }); const links = [];
-      for (const [index, page] of rendered.entries()) { const name = `Seite-${index + 1}.png`; await writeOutput(path.join(assets, name), page.data); links.push(`![Seite ${index + 1}](${path.basename(assets)}/${name})`); }
-      await writeOutput(target, links.join('\n\n'), 'utf8');
+      for (const [index, page] of rendered.entries()) { const name = `Seite-${index + 1}.png`; const saved = await writeOutput(path.join(assets, name), page.data); links.push(`![Seite ${index + 1}](${path.basename(assets)}/${path.basename(saved)})`); }
+      return [await writeOutput(target, links.join('\n\n'), 'utf8')];
     }
     if (format === 'docx') {
       const document = new Document({ sections: [{ children: pages.flatMap((pageText, index) => {
@@ -254,15 +285,15 @@ async function exportPdf(source, outputDir, format) {
         if (pageText.trim()) return [heading, ...pageText.split('\n').map(textPart => new Paragraph({ text: textPart, spacing: { after: 70 } }))];
         const page = rendered[index]; return [heading, new Paragraph({ children: [new ImageRun({ data: page.data, transformation: { width: Math.min(page.width, 520), height: Math.round(Math.min(page.width, 520) * page.height / page.width) } })] })];
       }) }] });
-      await writeOutput(target, await Packer.toBuffer(document));
+      return [await writeOutput(target, await Packer.toBuffer(document))];
     }
   }
-  return [target];
+  throw new Error(`Nicht unterstütztes Ausgabeformat: ${format}.`);
 }
 async function mergePdfs(files, outputDir) {
   requireFiles(files, 2); const result = await PDFDocument.create();
   for (const file of files) { const source = await PDFDocument.load(await fs.readFile(file)); const pages = await result.copyPages(source, source.getPageIndices()); pages.forEach(page => result.addPage(page)); }
-  const target = path.join(outputDir, 'PDF-zusammengefuegt.pdf'); await writeOutput(target, await result.save()); return [target];
+  const target = path.join(outputDir, 'PDF-zusammengefuegt.pdf'); return [await writeOutput(target, await result.save())];
 }
 function parsePositiveNumber(value, description) { const n = Number.parseInt(value, 10); if (!Number.isInteger(n) || n < 1) throw new Error(`${description} muss eine positive Seitenzahl sein.`); return n; }
 async function splitPdf(source, outputDir, splitAfter) {
@@ -273,7 +304,7 @@ async function splitPdf(source, outputDir, splitAfter) {
   for (const [part, end] of [...cuts, input.getPageCount()].entries()) {
     const doc = await PDFDocument.create(); const indices = [...Array(end - start).keys()].map(index => start + index);
     const pages = await doc.copyPages(input, indices); pages.forEach(page => doc.addPage(page));
-    const target = outputPath(outputDir, source[0], `-Teil-${part + 1}`, 'pdf'); await writeOutput(target, await doc.save()); outputs.push(target); start = end;
+    const target = outputPath(outputDir, source[0], `-Teil-${part + 1}`, 'pdf'); outputs.push(await writeOutput(target, await doc.save())); start = end;
   }
   return outputs;
 }
@@ -281,32 +312,35 @@ async function reorderPdf(source, outputDir, order) {
   requireFiles(source); const input = await PDFDocument.load(await fs.readFile(source[0]));
   const indices = String(order).split(',').map(v => parsePositiveNumber(v.trim(), 'Jede Seitenzahl') - 1);
   if (indices.length !== input.getPageCount() || new Set(indices).size !== indices.length || indices.some(i => i >= input.getPageCount())) throw new Error(`Bitte alle ${input.getPageCount()} Seiten genau einmal angeben, z. B. 2,1,3.`);
-  const doc = await PDFDocument.create(); const pages = await doc.copyPages(input, indices); pages.forEach(page => doc.addPage(page)); const target = outputPath(outputDir, source[0], '-sortiert', 'pdf'); await writeOutput(target, await doc.save()); return [target];
+  const doc = await PDFDocument.create(); const pages = await doc.copyPages(input, indices); pages.forEach(page => doc.addPage(page)); const target = outputPath(outputDir, source[0], '-sortiert', 'pdf'); return [await writeOutput(target, await doc.save())];
 }
 async function compressPdf(source, outputDir, level) {
   requireFiles(source); const target = outputPath(outputDir, source[0], '-komprimiert', 'pdf');
   const ghostscript = await findExecutable(['gswin64c.exe', 'gswin32c.exe']);
   if (ghostscript && level !== 'lossless') {
+    const output = await prepareOutput(target);
     const setting = level === 'small' ? '/screen' : '/ebook';
     const imageSettings = level === 'small'
       ? ['-dDownsampleColorImages=true', '-dColorImageDownsampleType=/Bicubic', '-dColorImageResolution=96', '-dDownsampleGrayImages=true', '-dGrayImageDownsampleType=/Bicubic', '-dGrayImageResolution=96', '-dJPEGQ=55']
       : ['-dDownsampleColorImages=true', '-dColorImageDownsampleType=/Bicubic', '-dColorImageResolution=150', '-dDownsampleGrayImages=true', '-dGrayImageDownsampleType=/Bicubic', '-dGrayImageResolution=150', '-dJPEGQ=75'];
-    await confirmOverwrite(target);
-    await execFileAsync(ghostscript, ['-sDEVICE=pdfwrite', '-dCompatibilityLevel=1.4', `-dPDFSETTINGS=${setting}`, ...imageSettings, '-dNOPAUSE', '-dQUIET', '-dBATCH', `-sOutputFile=${target}`, source[0]], { windowsHide: true, timeout: 180000 });
+    await execFileAsync(ghostscript, ['-sDEVICE=pdfwrite', '-dCompatibilityLevel=1.4', `-dPDFSETTINGS=${setting}`, ...imageSettings, '-dNOPAUSE', '-dQUIET', '-dBATCH', `-sOutputFile=${output}`, source[0]], { windowsHide: true, timeout: 180000 });
+    return [output];
   } else {
-    const pdf = await PDFDocument.load(await fs.readFile(source[0])); await writeOutput(target, await pdf.save({ useObjectStreams: true }));
+    const pdf = await PDFDocument.load(await fs.readFile(source[0])); return [await writeOutput(target, await pdf.save({ useObjectStreams: true }))];
   }
-  return [target];
 }
-async function runJob({ tool, files, outputDir, options = {} }) {
-  requireOutputDir(outputDir); requireFiles(files); await fs.mkdir(outputDir, { recursive: true });
-  if (tool === 'to-pdf') return convertToPdf(files, outputDir, options);
-  if (tool === 'from-pdf') return exportPdf(files[0], outputDir, options.format || 'txt');
-  if (tool === 'merge') return mergePdfs(files, outputDir);
-  if (tool === 'split') return splitPdf(files, outputDir, options.splitAfter);
-  if (tool === 'reorder') return reorderPdf(files, outputDir, options.order);
-  if (tool === 'compress') return compressPdf(files, outputDir, options.level || 'lossless');
-  throw new Error('Unbekanntes Werkzeug.');
+async function runJob({ tool, files, outputDir, options = {}, conflictStrategy = 'rename', language = 'de' }) {
+  const previousSettings = activeJobSettings; activeJobSettings = { conflictStrategy, language };
+  try {
+    requireOutputDir(outputDir); requireFiles(files); await fs.mkdir(outputDir, { recursive: true });
+    if (tool === 'to-pdf') return await convertToPdf(files, outputDir, options);
+    if (tool === 'from-pdf') return await exportPdf(files[0], outputDir, options.format || 'txt');
+    if (tool === 'merge') return await mergePdfs(files, outputDir);
+    if (tool === 'split') return await splitPdf(files, outputDir, options.splitAfter);
+    if (tool === 'reorder') return await reorderPdf(files, outputDir, options.order);
+    if (tool === 'compress') return await compressPdf(files, outputDir, options.level || 'lossless');
+    throw new Error('Unbekanntes Werkzeug.');
+  } finally { activeJobSettings = previousSettings; }
 }
 
 module.exports = { convertToPdf, exportPdf, mergePdfs, splitPdf, reorderPdf, compressPdf, runJob };
