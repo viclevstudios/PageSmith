@@ -1,0 +1,61 @@
+# PageSmith PDF
+
+PageSmith PDF is a local Windows 11 desktop application for converting and editing PDF files. Files stay on the device: the application does not upload documents to a server.
+
+## Features
+
+- Convert TXT, images, HTML, Markdown, Microsoft Office and OpenOffice files to PDF
+- Export PDFs to TXT, editable DOCX, visual HTML, or Markdown with page images
+- Merge PDFs, split them at selected pages, and reorder pages
+- Compress PDFs locally
+- German and English user interface
+
+## Requirements
+
+- Windows 11 (64-bit)
+- Node.js 22.13+ and npm 10+ for development
+- Microsoft Office for DOC, DOCX, XLS, XLSX, PPT and PPTX conversion (optional)
+- LibreOffice for ODT, ODS and ODP files, or as an Office-conversion fallback (optional)
+- Ghostscript for stronger image compression (optional; not bundled)
+
+## Development
+
+```powershell
+npm install
+npm start
+```
+
+Run the checks and functional tests:
+
+```powershell
+npm run check
+npm test
+```
+
+Build the Windows installer:
+
+```powershell
+npm run dist
+```
+
+## Privacy and security
+
+All primary operations run locally. Office and OpenOffice conversion launches locally installed applications in headless mode. PageSmith PDF does not include telemetry, cloud storage, or network-based document processing.
+
+Treat untrusted PDFs and office documents with the same care as any downloaded document. See [SECURITY.md](SECURITY.md) for vulnerability reporting.
+
+## Compatibility notes
+
+- Text-to-PDF conversion, PDF page operations, and TXT/DOCX export are covered by automated core-feature tests.
+- Office conversion depends on the locally installed Microsoft Office or LibreOffice version and is documented as a manual compatibility check.
+- Ghostscript is optional. Its licence must be reviewed before redistributing it with any derivative installer.
+
+See [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) and [docs/PERFORMANCE.md](docs/PERFORMANCE.md) for the tested scope and operating guidance.
+
+## Contributing
+
+Contributions are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) and the [Code of Conduct](CODE_OF_CONDUCT.md) before opening an issue or pull request.
+
+## Licence
+
+This project is released under the [MIT License](LICENSE).
