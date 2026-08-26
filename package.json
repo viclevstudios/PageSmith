@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "docx": "^9.5.1",
-    "marked": "^15.0.7",
+    "marked": "^18.0.10",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "6.2.108"
   },
