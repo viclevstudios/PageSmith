@@ -6,7 +6,7 @@
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
-    "check": "node --check src/main.js && node --check src/preload.js && node --check src/renderer.js",
+    "check": "node --check src/main.js && node --check src/backend/job-runner.js && node --check src/preload.js && node --check src/renderer/config.js && node --check src/renderer/app.js",
     "test": "node test/core.test.js",
     "dist": "electron-builder --win nsis"
   },
