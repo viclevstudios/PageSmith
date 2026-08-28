@@ -6,7 +6,8 @@
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
-    "check": "node --check src/main.js && node --check src/backend/job-runner.js && node --check src/preload.js && node --check src/renderer/config.js && node --check src/renderer/app.js",
+    "format": "prettier --write \"src/**/*.js\" \"test/**/*.js\"",
+    "check": "prettier --check \"src/**/*.js\" \"test/**/*.js\" && node --check src/main.js && node --check src/backend/runtime.js && node --check src/backend/conversion.js && node --check src/backend/export.js && node --check src/backend/pdf-operations.js && node --check src/backend/job-runner.js && node --check src/preload.js && node --check src/renderer/config.js && node --check src/renderer/dom.js && node --check src/renderer/layout.js && node --check src/renderer/options-view.js && node --check src/renderer/status-view.js && node --check src/renderer/workflow.js && node --check src/renderer/events.js",
     "test": "node test/core.test.js",
     "dist": "electron-builder --win nsis"
   },
@@ -22,7 +23,8 @@
   },
   "devDependencies": {
     "electron": "^44.0.0",
-    "electron-builder": "^26.0.12"
+    "electron-builder": "^26.0.12",
+    "prettier": "^3.9.6"
   },
   "build": {
     "appId": "de.lokalpdf.werkstatt",

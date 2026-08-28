@@ -27,7 +27,7 @@ PageSmith PDF is a small side project of mine which I wanted to share publicly b
 
 ## Development
 
-The source is organised by responsibility: `src/main.js` owns the Electron window and IPC boundary, `src/backend/job-runner.js` contains the PDF and conversion jobs, and `src/renderer/` separates UI configuration from UI behaviour.
+The source is organised by responsibility: `src/main.js` owns the Electron window and IPC boundary; `src/backend/` separates output handling, conversion, export, PDF operations, and job coordination; and `src/renderer/` separates UI configuration, DOM helpers, views, workflow, and event handling.
 
 ```powershell
 npm install
@@ -39,6 +39,7 @@ Run the checks and functional tests:
 ```powershell
 npm run check
 npm test
+npm run format
 ```
 
 Build the Windows installer:
