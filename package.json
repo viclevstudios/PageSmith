@@ -22,7 +22,7 @@
     "pdfjs-dist": "6.2.108"
   },
   "devDependencies": {
-    "electron": "^44.0.0",
+    "electron": "^44.4.5",
     "electron-builder": "^26.0.12",
     "prettier": "^3.9.6"
   },
